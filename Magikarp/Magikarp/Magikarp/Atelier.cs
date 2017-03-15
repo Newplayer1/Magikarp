@@ -13,6 +13,7 @@ using System.Diagnostics;
 
 namespace AtelierXNA
 {
+    enum États { PAGE_TITRE, JEU3D, COMBAT, FIN}
     public class Atelier : Microsoft.Xna.Framework.Game
     {
         const float INTERVALLE_CALCUL_FPS = 1f;
@@ -21,6 +22,8 @@ namespace AtelierXNA
 
         Caméra CaméraJeu { get; set; }
         InputManager GestionInput { get; set; }
+         États ÉtatJeu { get; set; }
+        
 
         public Atelier()
         {
@@ -31,21 +34,16 @@ namespace AtelierXNA
             IsMouseVisible = false;
             PériphériqueGraphique.PreferredBackBufferWidth = 800;
             PériphériqueGraphique.PreferredBackBufferHeight = 480;
-            PériphériqueGraphique.IsFullScreen = true;
+            PériphériqueGraphique.IsFullScreen = false;
         }
 
         protected override void Initialize()
         {
             GestionInput = new InputManager(this);
             Components.Add(GestionInput);
-            CaméraJeu = new CaméraSubjective(this, Vector3.Zero, Vector3.Zero, Vector3.Up, INTERVALLE_MAJ_STANDARD);
-            Components.Add(CaméraJeu);
-            Components.Add(new ArrièrePlanSpatial(this, "CielÉtoilé", INTERVALLE_MAJ_STANDARD));
-            Components.Add(new Afficheur3D(this));
-            Components.Add(new Jeu(this));
-            Components.Add(new AfficheurFPS(this, "Arial", Color.Red, INTERVALLE_CALCUL_FPS));
 
             Services.AddService(typeof(Random), new Random());
+            Services.AddService(typeof(États), ÉtatJeu);
             Services.AddService(typeof(RessourcesManager<SpriteFont>), new RessourcesManager<SpriteFont>(this, "Fonts"));
             Services.AddService(typeof(RessourcesManager<SoundEffect>), new RessourcesManager<SoundEffect>(this, "Sounds"));
             Services.AddService(typeof(RessourcesManager<Song>), new RessourcesManager<Song>(this, "Songs"));
@@ -58,9 +56,46 @@ namespace AtelierXNA
         }
         protected override void Update(GameTime gameTime)
         {
+            GérerTransition();
+            GérerÉtat();
+
             NettoyerListeComponents();
             GérerClavier();
             base.Update(gameTime);
+        }
+        private void GérerTransition()
+        {
+            switch (ÉtatJeu)
+            {
+                case États.PAGE_TITRE:
+                    GérerTransitionINITIALISATION();
+                    break;
+                case États.JEU3D:
+                    GérerTransitionJEU();
+                    break;
+            }
+        }
+        private void GérerÉtat()
+        {
+            switch (ÉtatJeu)
+            {
+                case États.PAGE_TITRE:
+                    break;
+                case États.JEU3D:
+                    InitialiserParcours();
+                    InitialiserCaméra();
+                    VérifierCollision();
+                    break;
+            }
+        }
+        private void GérerTransitionJEU()
+        {
+            CaméraJeu = new CaméraSubjective(this, Vector3.Zero, Vector3.Zero, Vector3.Up, INTERVALLE_MAJ_STANDARD);
+            Components.Add(CaméraJeu);
+            Components.Add(new ArrièrePlanSpatial(this, "CielÉtoilé", INTERVALLE_MAJ_STANDARD));
+            Components.Add(new Afficheur3D(this));
+            Components.Add(new Jeu(this));
+            Components.Add(new AfficheurFPS(this, "Arial", Color.Red, INTERVALLE_CALCUL_FPS));
         }
 
         void NettoyerListeComponents()
